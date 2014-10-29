@@ -223,14 +223,15 @@ public class VideoView extends SurfaceView implements
     
     public void stopPlayback() {
         if (mMediaPlayer != null) {
-            mMediaPlayer.stop();
-            mMediaPlayer.release();
+//            mMediaPlayer.stop();
+//            mMediaPlayer.release();
             mMediaPlayer = null;
             mCurrentState = STATE_IDLE;
             mTargetState = STATE_IDLE;
         }
     }
 
+    private static IjkMediaPlayer sInstance = null;
     private void openVideo() {
         if (mUri == null || mSurfaceHolder == null)
             return;
@@ -245,31 +246,48 @@ public class VideoView extends SurfaceView implements
             mCurrentBufferPercentage = 0;
             // mMediaPlayer = new AndroidMediaPlayer();
             IjkMediaPlayer ijkMediaPlayer = null;
-            if (mUri != null) {
-                ijkMediaPlayer = new IjkMediaPlayer();
-                ijkMediaPlayer.setAvOption(AvFormatOption_HttpDetectRangeSupport.Disable);
-                ijkMediaPlayer.setOverlayFormat(AvFourCC.SDL_FCC_RV32);
+            if (sInstance == null) {
+                if (mUri != null) {
+                    ijkMediaPlayer = new IjkMediaPlayer();
+                    ijkMediaPlayer.setAvOption(AvFormatOption_HttpDetectRangeSupport.Disable);
+                    ijkMediaPlayer.setOverlayFormat(AvFourCC.SDL_FCC_RV32);
 
-                ijkMediaPlayer.setAvCodecOption("skip_loop_filter", "48");
-                ijkMediaPlayer.setFrameDrop(12);
-                if (mUserAgent != null) {
-                    ijkMediaPlayer.setAvFormatOption("user_agent", mUserAgent);
+                    ijkMediaPlayer.setAvCodecOption("skip_loop_filter", "48");
+                    ijkMediaPlayer.setFrameDrop(12);
+                    if (mUserAgent != null) {
+                        ijkMediaPlayer.setAvFormatOption("user_agent", mUserAgent);
+                    }
+
+                    ijkMediaPlayer.setDataSource(mUri.toString());
                 }
+                sInstance = ijkMediaPlayer;
+                mMediaPlayer = ijkMediaPlayer;
+                mMediaPlayer.setOnPreparedListener(mPreparedListener);
+                mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
+                mMediaPlayer.setOnCompletionListener(mCompletionListener);
+                mMediaPlayer.setOnErrorListener(mErrorListener);
+                mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
+                mMediaPlayer.setOnInfoListener(mInfoListener);
+                mMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
+                mMediaPlayer.setDisplay(mSurfaceHolder);
+                mMediaPlayer.setScreenOnWhilePlaying(true);
+                mMediaPlayer.prepareAsync();
+                mCurrentState = STATE_PREPARING;
+            } else {
+                mMediaPlayer = sInstance;
+
+                mMediaPlayer.setOnPreparedListener(mPreparedListener);
+                mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
+                mMediaPlayer.setOnCompletionListener(mCompletionListener);
+                mMediaPlayer.setOnErrorListener(mErrorListener);
+                mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
+                mMediaPlayer.setOnInfoListener(mInfoListener);
+                mMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
+                mMediaPlayer.setDisplay(mSurfaceHolder);
+                mMediaPlayer.setScreenOnWhilePlaying(true);
+                mCurrentState = STATE_PAUSED;
             }
-            mMediaPlayer = ijkMediaPlayer;
-            mMediaPlayer.setOnPreparedListener(mPreparedListener);
-            mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
-            mMediaPlayer.setOnCompletionListener(mCompletionListener);
-            mMediaPlayer.setOnErrorListener(mErrorListener);
-            mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
-            mMediaPlayer.setOnInfoListener(mInfoListener);
-            mMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
-            if (mUri != null)
-                mMediaPlayer.setDataSource(mUri.toString());
-            mMediaPlayer.setDisplay(mSurfaceHolder);
-            mMediaPlayer.setScreenOnWhilePlaying(true);
-            mMediaPlayer.prepareAsync();
-            mCurrentState = STATE_PREPARING;
+            
             attachMediaController();
         } catch (IOException ex) {
             DebugLog.e(TAG, "Unable to open content: " + mUri, ex);
@@ -525,8 +543,8 @@ public class VideoView extends SurfaceView implements
 
     private void release(boolean cleartargetstate) {
         if (mMediaPlayer != null) {
-            mMediaPlayer.reset();
-            mMediaPlayer.release();
+            //mMediaPlayer.reset();
+            //mMediaPlayer.release();
             mMediaPlayer = null;
             mCurrentState = STATE_IDLE;
             if (cleartargetstate)
